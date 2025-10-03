@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Convert</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+  <header>
+    <div></div>
+    <div class="p-1">
+      <h1 class="text-center">Conversor de Imagens</h1>
+      <h2 class="text-center mt-4 fs-4">Converta imagens para os formatos:<br> JPG, PNG, WebP ou PDF</h2>      
+    </div>   
+  </header>
+
+  <div class="container">     
+
+    <form id="convert-form" class="form card p-4 shadow m-auto col-12 col-sm-10 col-md-8 col-lg-6">
+      <div class="mb-3">
+        <label for="image" class="form-label">Escolha uma imagem</label>
+        <input type="file" class="form-control" id="image" name="image" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="format" class="form-label">Converter para:</label>
+        <select id="format" name="format" class="form-select" required>
+          <option value="jpg">JPG</option>
+          <option value="png">PNG</option>
+          <option value="webp">WebP</option>
+          <option value="pdf">PDF</option>
+        </select>
+      </div>
+
+
+      <button type="button" id="convertBtn" class="btn btn-success w-100">Converter</button>
+    </form>
+
+    <div id="result" class="text-center mt-4"></div>
+  </div>
+
+  <script>
+    const convertForm = document.querySelector('#convert-form');
+    const convertBtn = document.querySelector('#convertBtn');
+    const resultDiv = document.querySelector('#result');
+
+    async function handleConvert() {
+      const formData = new FormData(convertForm);
+
+      try {
+        const response = await fetch("/convert", {
+          method: "POST",
+          body: formData
+        });
+
+        if (!response.ok) throw new Error("Erro na conversão");
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "imagem-convertida." + formData.get("format"); 
+        a.textContent = "Clique aqui para baixar";
+        a.className = "btn btn-success mt-3";
+
+        resultDiv.innerHTML = "";
+        resultDiv.appendChild(a);
+      } catch (err) {
+        resultDiv.innerHTML = "<p class='text-danger'>Erro na conversão.</p>";
+      }
+    }
+
+ 
+    convertBtn.addEventListener("click", handleConvert);
+  </script>
+</body>
+</html>

@@ -5,76 +5,114 @@ import fs from "fs";
 import sharp from "sharp";
 import svg2img from "svg2img";
 import PDFDocument from "pdfkit";
-
+import { trace } from "potrace";
+import archiver from "archiver"; 
 const app = express();
 const PORT = 3000;
 
 
-const upload = multer({ dest: "backend/uploads/" });
+const upload = multer({
+  dest: "backend/uploads/",
+  limits: {
+    fileSize: 5 * 1024 * 1024, 
+    files: 10                  
+  }
+});
 
 app.use(express.json());
 app.use(express.static("frontend"));
 
-
-app.post("/convert", upload.single("image"), async (req, res) => {
+app.post("/convert", upload.array("images", 10), async (req, res) => {
   try {
-    const file = req.file;
-    const format = req.body.format; 
+    const files = req.files;
+    const format = req.body.format;
 
-    if (!file) {
+    if (!files || files.length === 0) {
       return res.status(400).send("Nenhum arquivo enviado.");
     }
 
-    const ext = path.extname(file.originalname);
-    const inputPath = file.path;
-    const outputPath = `backend/uploads/${Date.now()}.${format}`;
+    if (files.length > 10) {
+      return res.status(400).send("Máximo de 10 imagens permitido por vez.");
+    }
 
  
-    if (format === "svg") {
-      return res.status(400).send("Conversão para SVG não suportada.");
+    const zipPath = `backend/uploads/${Date.now()}.zip`;
+    const output = fs.createWriteStream(zipPath);
+    const archive = archiver("zip", { zlib: { level: 9 } });
+
+    archive.pipe(output);
+
+
+    const outputFiles = [];
+
+    for (const file of files) {
+      const ext = path.extname(file.originalname).toLowerCase();
+      const inputPath = file.path;
+      const outputPath = `backend/uploads/${Date.now()}-${file.originalname.split(".")[0]}.${format}`;
+
+
+      if (format === "pdf") {
+        const doc = new PDFDocument();
+        const stream = fs.createWriteStream(outputPath);
+        doc.pipe(stream);
+        doc.image(inputPath, { fit: [500, 700], align: "center", valign: "center" });
+        doc.end();
+        await new Promise((resolve) => stream.on("finish", resolve));
+      }
+   
+      else if (format === "svg") {
+        await new Promise((resolve, reject) => {
+          trace(inputPath, (err, svg) => {
+            if (err) return reject(err);
+            fs.writeFileSync(outputPath, svg);
+            resolve();
+          });
+        });
+      }
+      
+      else if (ext === ".svg" || file.mimetype === "image/svg+xml") {
+        await new Promise((resolve, reject) => {
+          const svgContent = fs.readFileSync(inputPath, "utf8");
+          svg2img(svgContent, { format }, (err, buffer) => {
+            if (err) return reject(err);
+            fs.writeFileSync(outputPath, buffer);
+            resolve();
+          });
+        });
+      }
+     
+      else {
+        await sharp(inputPath).toFormat(format).toFile(outputPath);
+      }
+
+   
+      archive.file(outputPath, { name: path.basename(outputPath) });
+      outputFiles.push(outputPath);
+
+      fs.unlinkSync(inputPath);
     }
 
+    archive.finalize();
 
-    if (format === "pdf") {
-      const doc = new PDFDocument();
-      const stream = fs.createWriteStream(outputPath);
-      doc.pipe(stream);
-      doc.image(inputPath, {
-        fit: [500, 700],
-        align: "center",
-        valign: "center"
-      });
-      doc.end();
-      stream.on("finish", () => {
-        res.download(outputPath, `convertido.${format}`, () => {
-          fs.unlinkSync(inputPath);
-          fs.unlinkSync(outputPath);
-        });
-      });
-      return;
-    }
-
-
-    if (ext === ".svg" || file.mimetype === "image/svg+xml") {
-      svg2img(fs.readFileSync(inputPath, "utf8"), { format }, (err, buffer) => {
-        if (err) return res.status(500).send("Erro na conversão SVG.");
-        fs.writeFileSync(outputPath, buffer);
-        res.download(outputPath, `convertido.${format}`, () => {
-          fs.unlinkSync(inputPath);
-          fs.unlinkSync(outputPath);
-        });
-      });
-    } else {
+    output.on("close", () => {
+      res.download(zipPath, "convertidos.zip", () => {
     
-      await sharp(inputPath).toFormat(format).toFile(outputPath);
-
-      res.download(outputPath, `convertido.${format}`, () => {
-        fs.unlinkSync(inputPath);
-        fs.unlinkSync(outputPath);
+        if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath); 
+   
+        outputFiles.forEach(f => {
+          if (fs.existsSync(f)) fs.unlinkSync(f);
+        });
       });
-    }
+    });
+
   } catch (err) {
     console.error(err);
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).send("Cada arquivo deve ter no máximo 5MB.");
+    }
+    if (err.code === "LIMIT_FILE_COUNT") {
+      return res.status(400).send("Máximo de 10 arquivos permitido.");
+    }
     res.status(500).send("Erro na conversão.");
   }
 });

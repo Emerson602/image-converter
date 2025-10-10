@@ -2,28 +2,34 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Convert</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conversor de Imagens</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./css/styles.css">
 </head>
 <body>
 
   <header>
     <div></div>
     <div class="p-1">
-      <h1 class="text-center">Conversor de Imagens</h1>
-      <h2 class="text-center mt-4 fs-4">Converta imagens para os formatos:<br> JPG, PNG, WebP ou PDF</h2>      
+      <h1 class="text-center text-white">Conversor de Imagens</h1>
+      <h2 class="text-center mt-4 fs-4">
+        Converta várias imagens para os formatos:<br> JPG, PNG, WebP, SVG ou PDF 
+      </h2>      
     </div>   
   </header>
 
-  <div class="container">     
+  <div class="container col-auto my-5">   
 
-    <form id="convert-form" class="form card p-4 shadow m-auto col-12 col-sm-10 col-md-8 col-lg-6">
+    <form id="convert-form" class="form m-auto card p-4 shadow col-12 col-sm-10 col-md-8 col-lg-6">
       <div class="mb-3">
-        <label for="image" class="form-label">Escolha uma imagem</label>
-        <input type="file" class="form-control" id="image" name="image" required>
+        <label for="images" class="form-label">Escolha uma ou mais imagens</label>
+        <input type="file" class="form-control" id="images" name="images" multiple required>
       </div>
+
+    
+      <div id="preview" class="mb-3"></div>
+      <p id="error-msg" class="text-danger text-center"></p>
 
       <div class="mb-3">
         <label for="format" class="form-label">Converter para:</label>
@@ -32,50 +38,75 @@
           <option value="png">PNG</option>
           <option value="webp">WebP</option>
           <option value="pdf">PDF</option>
+          <option value="svg">SVG</option>
         </select>
       </div>
-
 
       <button type="button" id="convertBtn" class="btn btn-success w-100">Converter</button>
     </form>
 
     <div id="result" class="text-center mt-4"></div>
+
   </div>
 
-  <script>
-    const convertForm = document.querySelector('#convert-form');
-    const convertBtn = document.querySelector('#convertBtn');
-    const resultDiv = document.querySelector('#result');
 
-    async function handleConvert() {
-      const formData = new FormData(convertForm);
+<section class="py-5"> 
 
-      try {
-        const response = await fetch("/convert", {
-          method: "POST",
-          body: formData
-        });
+  <div class="m-2 card-box">
+    <h3>100% Gratuito</h3>
+    <p>Converta suas imagens <strong>gratuitamente</strong>, sem limites diários ou restrições de uso. 
+      Rápido, simples e totalmente online.</p>
+  </div>
 
-        if (!response.ok) throw new Error("Erro na conversão");
+  <div class="m-2 card-box">
+    <h3>Funciona Online</h3>
+    <p>O nosso <strong>conversor de imagens online</strong> não requer instalação ou download de programas. 
+      Basta carregar as suas fotos e convertê-las diretamente no navegador.</p>
+  </div>
 
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
+  <div class="m-2 card-box">
+    <h3>Suporta Diversos Formatos</h3>
+    <p>Converta imagens para <strong>JPG, PNG, WebP, SVG e PDF.</strong></p>
+  </div>
 
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "imagem-convertida." + formData.get("format"); 
-        a.textContent = "Clique aqui para baixar";
-        a.className = "btn btn-success mt-3";
+  <div class="m-2 card-box">
+    <h3>Conversor Seguro</h3>
+    <p>Os arquivos são processados de forma privada e <strong>excluídos após o download</strong>, garantindo que as suas imagens não fiquem armazenadas no servidor.</p>
+  </div>
 
-        resultDiv.innerHTML = "";
-        resultDiv.appendChild(a);
-      } catch (err) {
-        resultDiv.innerHTML = "<p class='text-danger'>Erro na conversão.</p>";
-      }
-    }
+  <div class="m-2 card-box">
+    <h3>Como Converter</h3>
+    <p>Arraste e solte os arquivos, clique em <em>Converter</em> e faça o download do resultado. 
+      Um processo rápido, simples e totalmente online.</p>
+  </div>
 
- 
-    convertBtn.addEventListener("click", handleConvert);
-  </script>
+  <div class="m-2 card-box">
+    <h3>Simples e Rápido</h3>
+    <p>Criado para ser simples e rápido: em apenas um clique, a ferramenta realiza a 
+      <strong>conversão de imagens</strong> sem complicações.</p>
+  </div>
+</section>
+
+
+  <footer class="text-center">© 2025 - Convert</footer>
+
+
+  <div class="modal fade" id="downloadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content text-center">
+        <div class="modal-header">
+          <h5 class="modal-title">Download Pronto!</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body" id="modal-body-download">
+       
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="./js/script.js"></script>
 </body>
 </html>

@@ -112,28 +112,24 @@ header h2 strong {
   line-height: 18px;
 }
 
-section {
-  background: #0f0e13;
-  display: grid;
-  grid-template-columns: auto auto auto;
-  justify-content: center;
-  align-items: center;
-}
+  section {
+    background-color: #0f0e13;
+  }
 
 
-.card-box {
-  background: #17141e;
-  padding: 1.8rem;
-  border-radius: 18px;
-  border: 1px solid #2d2438;
-  color: #d2cce4;
-  transition: transform 0.2s ease, box-shadow 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: auto;
-  min-height: 200px; 
-}
+  .card-box {
+    background: #17141e;
+    padding: 1.8rem;
+    border-radius: 18px;
+    border: 1px solid #2d2438;
+    color: #d2cce4;
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    height: auto;
+    min-height: 200px; 
+  }
 
 .card-box h3 {
   color: #c6b4ff;
@@ -145,26 +141,19 @@ section {
   box-shadow: 0 0 20px rgba(160, 90, 255, 0.25);
 }
 
-
-section h3 {
-  color: #c6b4ff;
-  font-weight: 600;
-}
-
 section p {
   color: #d2cce4;
   font-size: 0.95rem;
 }
 
-section div {
+section div:nth-child(1) {
   background: #17141e;
-  padding: 1.8rem;
   border-radius: 18px;
   border: 1px solid #2d2438;
   transition: transform 0.2s ease, box-shadow 0.3s ease;
 }
 
-section div:hover {
+section div:nth-child(1):hover {
   transform: translateY(-5px);
   box-shadow: 0 0 20px rgba(160, 90, 255, 0.25);
 }

@@ -77,8 +77,10 @@ async function handleConvert() {
   const formData = new FormData();
   selectedFiles.forEach(file => formData.append("images", file));
   formData.append("format", document.querySelector("#format").value);
+  formData.append("downloadType", document.querySelector("#downloadType").value);
 
   try {
+    const downloadType = document.querySelector("#downloadType").value;
     const response = await fetch("/convert", {
       method: "POST",
       body: formData
@@ -89,23 +91,49 @@ async function handleConvert() {
       throw new Error(errMsg);
     }
 
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
+    if (downloadType === "zip") {
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "imagens-convertidas.zip";
-    a.textContent = "Baixar Arquivo ZIP";
-    a.className = "btn btn-success";
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "imagens-convertidas.zip";
+      a.textContent = "Baixar Arquivo ZIP";      
 
-    modalBodyDownload.innerHTML = "";
-    modalBodyDownload.appendChild(a);
+      modalBodyDownload.innerHTML = "";
+      modalBodyDownload.appendChild(a);
+      downloadModal.show();
+    } else {
+      
+      const data = await response.json();
+      modalBodyDownload.innerHTML = "";
 
-    downloadModal.show();
+      data.files.forEach(fileUrl => {
+        const img = document.createElement("img");
+        img.src = fileUrl;
+        
+        const a = document.createElement("a");
+        a.href = fileUrl;
+        a.download = fileUrl.split("/").pop();
+        a.textContent = "Baixar"; 
+        
+       const div = document.createElement("div");
+
+       div.appendChild(img);
+       div.appendChild(a);
+
+        modalBodyDownload.appendChild(div);
+        
+      });
+
+      downloadModal.show();
+    }
 
   } catch (err) {
     resultDiv.innerHTML = `<p class='text-danger'>${err.message}</p>`;
   }
 }
+
 
 convertBtn.addEventListener("click", handleConvert);

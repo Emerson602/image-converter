@@ -21,27 +21,18 @@ const upload = multer({
 
 app.use(express.json());
 app.use(express.static("frontend"));
+app.use("/uploads", express.static("backend/uploads"));
+
 
 app.post("/convert", upload.array("images", 10), async (req, res) => {
   try {
     const files = req.files;
     const format = req.body.format;
+    const downloadType = req.body.downloadType || "zip";
 
     if (!files || files.length === 0) {
       return res.status(400).send("Nenhum arquivo enviado.");
     }
-
-    if (files.length > 10) {
-      return res.status(400).send("Máximo de 10 imagens permitido por vez.");
-    }
-
- 
-    const zipPath = `backend/uploads/${Date.now()}.zip`;
-    const output = fs.createWriteStream(zipPath);
-    const archive = archiver("zip", { zlib: { level: 9 } });
-
-    archive.pipe(output);
-
 
     const outputFiles = [];
 
@@ -50,17 +41,14 @@ app.post("/convert", upload.array("images", 10), async (req, res) => {
       const inputPath = file.path;
       const outputPath = `backend/uploads/${Date.now()}-${file.originalname.split(".")[0]}.${format}`;
 
-
       if (format === "pdf") {
         const doc = new PDFDocument();
         const stream = fs.createWriteStream(outputPath);
         doc.pipe(stream);
         doc.image(inputPath, { fit: [500, 700], align: "center", valign: "center" });
         doc.end();
-        await new Promise((resolve) => stream.on("finish", resolve));
-      }
-   
-      else if (format === "svg") {
+        await new Promise(resolve => stream.on("finish", resolve));
+      } else if (format === "svg") {
         await new Promise((resolve, reject) => {
           trace(inputPath, (err, svg) => {
             if (err) return reject(err);
@@ -68,9 +56,7 @@ app.post("/convert", upload.array("images", 10), async (req, res) => {
             resolve();
           });
         });
-      }
-      
-      else if (ext === ".svg" || file.mimetype === "image/svg+xml") {
+      } else if (ext === ".svg" || file.mimetype === "image/svg+xml") {
         await new Promise((resolve, reject) => {
           const svgContent = fs.readFileSync(inputPath, "utf8");
           svg2img(svgContent, { format }, (err, buffer) => {
@@ -79,31 +65,35 @@ app.post("/convert", upload.array("images", 10), async (req, res) => {
             resolve();
           });
         });
-      }
-     
-      else {
+      } else {
         await sharp(inputPath).toFormat(format).toFile(outputPath);
       }
 
-   
-      archive.file(outputPath, { name: path.basename(outputPath) });
-      outputFiles.push(outputPath);
-
       fs.unlinkSync(inputPath);
+
+      outputFiles.push(outputPath);
     }
 
-    archive.finalize();
+    if (downloadType === "zip") {
+      const zipPath = `backend/uploads/${Date.now()}.zip`;
+      const output = fs.createWriteStream(zipPath);
+      const archive = archiver("zip", { zlib: { level: 9 } });
 
-    output.on("close", () => {
-      res.download(zipPath, "convertidos.zip", () => {
-    
-        if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath); 
-   
-        outputFiles.forEach(f => {
-          if (fs.existsSync(f)) fs.unlinkSync(f);
+      archive.pipe(output);
+      outputFiles.forEach(f => archive.file(f, { name: path.basename(f) }));
+      archive.finalize();
+
+      output.on("close", () => {
+        res.download(zipPath, "convertidos.zip", () => {
+          if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
+          outputFiles.forEach(f => fs.existsSync(f) && fs.unlinkSync(f));
         });
       });
-    });
+    } else {
+      // Retornar as imagens individualmente
+      const publicUrls = outputFiles.map(f => `/${f.replace("backend/", "")}`);
+      res.json({ files: publicUrls });
+    }
 
   } catch (err) {
     console.error(err);
@@ -116,6 +106,7 @@ app.post("/convert", upload.array("images", 10), async (req, res) => {
     res.status(500).send("Erro na conversão.");
   }
 });
+
 
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
